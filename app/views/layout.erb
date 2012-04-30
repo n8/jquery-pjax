@@ -40,21 +40,13 @@
     ul{padding-left:15px;}
   </style>
   
-  <script src="http://js.pusher.com/1.11/pusher.min.js" type="text/javascript"></script>
+  <script src="http://static.firebase.com/v0/firebase.js"></script>
   <script type="text/javascript">
-    // Enable pusher logging - don't include this in production
-    Pusher.log = function(message) {
-      if (window.console && window.console.log) window.console.log(message);
-    };
-
-    // Flash fallback logging - don't include this in production
-    WEB_SOCKET_DEBUG = true;
-
-    var pusher = new Pusher('yourkey');
-    var channel = pusher.subscribe('local_app_cache');
-    channel.bind('events_for_group_id_12345', function(data) {
+    var dataRef = new Firebase('http://gamma.firebase.com/nate/my_app/events_for_group_id_12345')
+    dataRef.on('value', function(snapshot) {
       sessionStorage.clear()
-    });
+    })
+    
   </script>
   
 </head>
