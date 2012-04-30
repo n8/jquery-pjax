@@ -81,6 +81,61 @@ function handleClick(event, container, options) {
   return false
 }
 
+function handlePush(data, options){
+  
+  var $fragment = $(data).find(options.fragment)
+  
+  // If there's a <title> tag in the response, use it as
+  // the page's title.
+  var oldTitle = document.title,
+      title = $.trim( $(data).find('title').remove().text() )
+
+  // No <title>? Fragment? Look for data-title and title attributes.
+  if ( !title && options.fragment ) {
+    title = $fragment.attr('title') || $fragment.data('title')
+  }
+
+  if ( title ) document.title = title
+
+  var state = {
+    pjax: options.context.selector,
+    fragment: options.fragment,
+    timeout: options.timeout
+  }
+
+  // If there are extra params, save the complete URL in the state object
+  var query = $.param(options.data)
+  if ( query != "_pjax=true" )
+    state.url = options.url + (/\?/.test(options.url) ? "&" : "?") + query
+
+  if ( options.replace ) {
+    pjax.active = true
+    window.history.replaceState(state, document.title, options.url)
+  } else if ( options.push ) {
+    // this extra replaceState before first push ensures good back
+    // button behavior
+    if ( !pjax.active ) {
+      window.history.replaceState($.extend({}, state, {url:null}), oldTitle)
+      pjax.active = true
+    }
+
+    window.history.pushState(state, document.title, options.url)
+  }
+
+  // Google Analytics support
+  if ( (options.replace || options.push) && window._gaq )
+    _gaq.push(['_trackPageview'])
+
+  // If the URL has a hash in it, make sure the browser
+  // knows to navigate to the hash.
+  var hash = window.location.hash.toString()
+  if ( hash !== '' ) {
+    window.location.href = hash
+  }  
+  
+  return true
+}
+
 
 // Loads a URL with ajax, puts the response body inside a container,
 // then pushState()'s the loaded URL.
@@ -116,7 +171,7 @@ var pjax = $.pjax = function( options ) {
 
   options.context = $container
 
-  options.success = function(data){
+  options.success = function(data, textStatus, xhr){
     if ( options.fragment ) {
       // If they specified a fragment, look for it in the response
       // and pull it out.
@@ -134,54 +189,11 @@ var pjax = $.pjax = function( options ) {
 
     // Make it happen.
     this.html(data)
+    
+    var location = getLocation(options.url)
+    sessionStorage.setItem(location.pathname + location.hash + location.search, data)
 
-    // If there's a <title> tag in the response, use it as
-    // the page's title.
-    var oldTitle = document.title,
-        title = $.trim( this.find('title').remove().text() )
-
-    // No <title>? Fragment? Look for data-title and title attributes.
-    if ( !title && options.fragment ) {
-      title = $fragment.attr('title') || $fragment.data('title')
-    }
-
-    if ( title ) document.title = title
-
-    var state = {
-      pjax: $container.selector,
-      fragment: options.fragment,
-      timeout: options.timeout
-    }
-
-    // If there are extra params, save the complete URL in the state object
-    var query = $.param(options.data)
-    if ( query != "_pjax=true" )
-      state.url = options.url + (/\?/.test(options.url) ? "&" : "?") + query
-
-    if ( options.replace ) {
-      pjax.active = true
-      window.history.replaceState(state, document.title, options.url)
-    } else if ( options.push ) {
-      // this extra replaceState before first push ensures good back
-      // button behavior
-      if ( !pjax.active ) {
-        window.history.replaceState($.extend({}, state, {url:null}), oldTitle)
-        pjax.active = true
-      }
-
-      window.history.pushState(state, document.title, options.url)
-    }
-
-    // Google Analytics support
-    if ( (options.replace || options.push) && window._gaq )
-      _gaq.push(['_trackPageview'])
-
-    // If the URL has a hash in it, make sure the browser
-    // knows to navigate to the hash.
-    var hash = window.location.hash.toString()
-    if ( hash !== '' ) {
-      window.location.href = hash
-    }
+    handlePush(data, options)
 
     // Invoke their success handler if they gave us one.
     success.apply(this, arguments)
@@ -195,10 +207,21 @@ var pjax = $.pjax = function( options ) {
   }
 
   pjax.options = options
-  pjax.xhr = $.ajax(options)
-  $(document).trigger('pjax', [pjax.xhr, options])
+    
+  var location = getLocation(options.url)
 
-  return pjax.xhr
+  var data = sessionStorage.getItem(location.pathname + location.hash + location.search)
+  if(data){
+    options.context.html(data)
+    handlePush(data, options)
+    return true
+  }
+  else{  
+    pjax.xhr = $.ajax(options)
+    $(document).trigger('pjax', [pjax.xhr, options])
+    return pjax.xhr
+  }
+
 }
 
 
@@ -261,6 +284,11 @@ function findContainerFor(container) {
   }
 }
 
+function getLocation(href) {
+  var l = document.createElement("a")
+  l.href = href
+  return l
+}
 
 var timeoutTimer = null
 
@@ -366,5 +394,7 @@ if ( !$.support.pjax ) {
   $.pjax.click = $.noop
   $.fn.pjax = function() { return this }
 }
+
+
 
 })(jQuery);
