@@ -50,7 +50,7 @@
     // Flash fallback logging - don't include this in production
     WEB_SOCKET_DEBUG = true;
 
-    var pusher = new Pusher('f600b50f55a687b255c6');
+    var pusher = new Pusher('yourkey');
     var channel = pusher.subscribe('local_app_cache');
     channel.bind('events_for_group_id_12345', function(data) {
       sessionStorage.clear()

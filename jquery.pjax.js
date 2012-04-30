@@ -215,7 +215,6 @@ var pjax = $.pjax = function( options ) {
   var data = sessionStorage.getItem(location.pathname + location.hash + location.search)
   if(data){
     options.context.html(data)
-    console.log("using cached data")
     handlePush(data, options)
     return true
   }
