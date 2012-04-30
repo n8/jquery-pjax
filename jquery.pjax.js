@@ -23,8 +23,10 @@
 // the options object.
 //
 // Returns the jQuery object
+  
 $.fn.pjax = function( container, options ) {
   options = optionsFor(container, options)
+
   return this.live('click', function(event){
     return handleClick(event, options)
   })
@@ -213,6 +215,7 @@ var pjax = $.pjax = function( options ) {
   var data = sessionStorage.getItem(location.pathname + location.hash + location.search)
   if(data){
     options.context.html(data)
+    console.log("using cached data")
     handlePush(data, options)
     return true
   }
@@ -373,6 +376,7 @@ $(window).bind('popstate', function(event){
 })
 
 
+
 // Add the state property to jQuery's event object so we can use it in
 // $(window).bind('popstate')
 if ( $.inArray('state', $.event.props) < 0 )
@@ -394,6 +398,12 @@ if ( !$.support.pjax ) {
   $.pjax.click = $.noop
   $.fn.pjax = function() { return this }
 }
+
+
+$('form').live('submit', function() {
+  sessionStorage.clear()
+  return true
+})
 
 
 
